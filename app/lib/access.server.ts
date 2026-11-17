@@ -164,6 +164,24 @@ export async function requireContentAccess(
 }
 
 /**
+ * Throws unless the user is a Support agent or an admin — the people who carry
+ * out Refund reviews.
+ */
+export async function requireRefundReviewer(request: Request) {
+  const userId = await requireUserId(request);
+  const user = getUserById(userId);
+
+  if (
+    !user ||
+    (user.role !== UserRole.Support && user.role !== UserRole.Admin)
+  ) {
+    throw data("Only support agents can review refunds.", { status: 403 });
+  }
+
+  return { userId, user };
+}
+
+/**
  * Throws unless the user is the course's own instructor, or an admin.
  */
 export async function requireStaff(

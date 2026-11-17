@@ -21,7 +21,7 @@ import {
 import { AlertTriangle } from "lucide-react";
 import { data, isRouteErrorResponse, Link } from "react-router";
 import { db } from "~/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { formatPrice } from "~/lib/utils";
 
 const settingsSchema = z.object({
@@ -70,7 +70,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     .where(
       and(
         eq(purchases.userId, currentUserId),
-        eq(refunds.status, RefundStatus.Requested)
+        inArray(refunds.status, [
+          RefundStatus.Requested,
+          RefundStatus.AwaitingSecondApproval,
+        ])
       )
     )
     .all();

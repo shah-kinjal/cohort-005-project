@@ -19,7 +19,6 @@ import {
   refunds,
   videoWatchEvents,
   LessonProgressStatus,
-  RefundStatus,
 } from "~/db/schema";
 import { eq, and, or, sql, inArray, isNotNull } from "drizzle-orm";
 import { Card, CardContent, CardHeader } from "~/components/ui/card";
@@ -381,16 +380,11 @@ function getPurchaseForCourse(userId: number, courseId: number) {
     .get();
 }
 
-function getPendingRefund(purchaseId: number) {
+function getRefundForPurchase(purchaseId: number) {
   return db
     .select({ id: refunds.id })
     .from(refunds)
-    .where(
-      and(
-        eq(refunds.purchaseId, purchaseId),
-        eq(refunds.status, RefundStatus.Requested)
-      )
-    )
+    .where(eq(refunds.purchaseId, purchaseId))
     .get();
 }
 
@@ -449,7 +443,7 @@ function getRefundOffer(userId: number, course: { id: number; price: number }) {
   const purchase = getPurchaseForCourse(userId, course.id);
 
   if (!purchase) return null;
-  if (getPendingRefund(purchase.id)) return null;
+  if (getRefundForPurchase(purchase.id)) return null;
 
   const purchasedDay = asDayString(new Date(purchase.createdAt));
   const windowEnd = new Date(purchase.createdAt);
