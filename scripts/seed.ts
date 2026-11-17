@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { eq, gte, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
+import { and, eq, gte, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
@@ -11,6 +11,7 @@ import {
   CourseStatus,
   LessonProgressStatus,
   QuestionType,
+  RefundStatus,
   TeamMemberRole,
 } from "../app/db/schema";
 
@@ -119,6 +120,18 @@ async function seed() {
       role: UserRole.Admin,
       avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=alex",
       createdAt: daysAgo(120),
+    })
+    .returning()
+    .all();
+
+  const [supportAgent] = db
+    .insert(schema.users)
+    .values({
+      name: "Jordan Lee",
+      email: "jordan.lee@ralph.dev",
+      role: UserRole.Support,
+      avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=jordan",
+      createdAt: daysAgo(90),
     })
     .returning()
     .all();
@@ -265,7 +278,7 @@ async function seed() {
   const studentCount = allStudents.length;
 
   console.log(
-    `Created ${1 + instructorCount + studentCount} users (1 admin, ${instructorCount} instructors, ${studentCount} students).`
+    `Created ${2 + instructorCount + studentCount} users (1 admin, 1 support agent, ${instructorCount} instructors, ${studentCount} students).`
   );
 
   // ─── Categories ───
@@ -2278,6 +2291,63 @@ This course is still in draft while the cluster examples are rewritten against t
 
   console.log(`Created ${countRows(schema.purchases)} individual purchases.`);
 
+  // ─── Refunds ───
+  // One Refund in each state a Support agent can meet. Approved refunds are
+  // left out: approving one deletes the learner's enrollment.
+
+  function purchaseFor(studentId: number, courseId: number) {
+    const purchase = db
+      .select()
+      .from(schema.purchases)
+      .where(
+        and(
+          eq(schema.purchases.userId, studentId),
+          eq(schema.purchases.courseId, courseId)
+        )
+      )
+      .get();
+    if (!purchase) throw new Error("Seed purchase not found for refund.");
+    return purchase;
+  }
+
+  db.insert(schema.refunds)
+    .values([
+      {
+        // $49.99 — over the Approval threshold, no review yet.
+        purchaseId: purchaseFor(students[4].id, course1.id).id,
+        status: RefundStatus.Requested,
+        reason: "The course is not at the level I expected.",
+        requestedAt: daysAgo(2),
+      },
+      {
+        // Exactly $25.00 — the Approval threshold, so it needs two approvals.
+        purchaseId: purchaseFor(students[1].id, course1.id).id,
+        status: RefundStatus.Requested,
+        reason: "I bought the wrong course by mistake.",
+        requestedAt: daysAgo(1),
+      },
+      {
+        // $49.99 — first approved by the Support agent, waiting on a second.
+        purchaseId: purchaseFor(students[2].id, course1.id).id,
+        status: RefundStatus.AwaitingSecondApproval,
+        reason: "The videos will not play on my connection.",
+        firstApprovedByUserId: supportAgent.id,
+        requestedAt: daysAgo(3),
+      },
+      {
+        // $59.99 — declined, so final.
+        purchaseId: purchaseFor(students[0].id, course2.id).id,
+        status: RefundStatus.Declined,
+        reason: "I changed my mind after finishing most of it.",
+        resolvedAt: daysAgo(4),
+        resolvedByUserId: supportAgent.id,
+        requestedAt: daysAgo(6),
+      },
+    ])
+    .run();
+
+  console.log(`Created ${countRows(schema.refunds)} refunds.`);
+
   // ─── Teams, Team Members, and Coupons ───
   // Bossy McBossface bought 5 team seats for course 2; Olivia and Liam redeemed coupons
 
@@ -2750,7 +2820,7 @@ This course is still in draft while the cluster examples are rewritten against t
 
   console.log("\n✓ Seed complete!");
   console.log(
-    `  Users: ${countRows(schema.users)} (${countRows(schema.users, eq(schema.users.role, UserRole.Admin))} admin, ${countRows(schema.users, eq(schema.users.role, UserRole.Instructor))} instructors, ${countRows(schema.users, eq(schema.users.role, UserRole.Student))} students)`
+    `  Users: ${countRows(schema.users)} (${countRows(schema.users, eq(schema.users.role, UserRole.Admin))} admin, ${countRows(schema.users, eq(schema.users.role, UserRole.Support))} support, ${countRows(schema.users, eq(schema.users.role, UserRole.Instructor))} instructors, ${countRows(schema.users, eq(schema.users.role, UserRole.Student))} students)`
   );
   console.log(`  Categories: ${countRows(schema.categories)}`);
   console.log(

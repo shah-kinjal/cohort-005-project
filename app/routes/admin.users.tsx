@@ -146,6 +146,12 @@ function roleBadge(role: string) {
           Instructor
         </span>
       );
+    case UserRole.Support:
+      return (
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+          Support agent
+        </span>
+      );
     case UserRole.Student:
       return (
         <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
@@ -290,6 +296,7 @@ function EditableUserRow({
           <SelectContent>
             <SelectItem value={UserRole.Student}>Student</SelectItem>
             <SelectItem value={UserRole.Instructor}>Instructor</SelectItem>
+            <SelectItem value={UserRole.Support}>Support agent</SelectItem>
             <SelectItem value={UserRole.Admin}>Admin</SelectItem>
           </SelectContent>
         </Select>

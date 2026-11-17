@@ -11,6 +11,7 @@ import {
 export enum UserRole {
   Student = "student",
   Instructor = "instructor",
+  Support = "support",
   Admin = "admin",
 }
 
@@ -33,6 +34,7 @@ export enum QuestionType {
 
 export enum RefundStatus {
   Requested = "requested",
+  AwaitingSecondApproval = "awaiting_second_approval",
   Approved = "approved",
   Declined = "declined",
 }
@@ -247,6 +249,10 @@ export const refunds = sqliteTable(
     requestedAt: text("requested_at")
       .notNull()
       .$defaultFn(() => new Date().toISOString()),
+    // Set by the first reviewer of a Refund at or above the Approval threshold.
+    firstApprovedByUserId: integer("first_approved_by_user_id").references(
+      () => users.id
+    ),
     resolvedAt: text("resolved_at"),
     resolvedByUserId: integer("resolved_by_user_id").references(() => users.id),
   },
