@@ -15,6 +15,10 @@ import {
 } from "~/db/schema";
 import { requireRefundReviewer } from "~/lib/access.server";
 import { REFUND_APPROVAL_THRESHOLD_CENTS, reviewRefund } from "~/lib/refund";
+import {
+  buildApprovedRefundEmail,
+  buildDeclinedRefundEmail,
+} from "~/lib/refund-email";
 import { formatPrice } from "~/lib/utils";
 import { parseFormData } from "~/lib/validation";
 import { Button } from "~/components/ui/button";
@@ -94,10 +98,15 @@ export async function action({ request }: Route.ActionArgs) {
       firstApproverId: refunds.firstApprovedByUserId,
       amountPaid: purchases.amountPaid,
       learnerId: purchases.userId,
+      learnerName: users.name,
+      learnerEmail: users.email,
       courseId: purchases.courseId,
+      courseTitle: courses.title,
     })
     .from(refunds)
     .innerJoin(purchases, eq(refunds.purchaseId, purchases.id))
+    .innerJoin(users, eq(purchases.userId, users.id))
+    .innerJoin(courses, eq(purchases.courseId, courses.id))
     .where(eq(refunds.id, refundId))
     .get();
 
@@ -159,6 +168,29 @@ export async function action({ request }: Route.ActionArgs) {
         .run();
     }
   });
+
+  // The learner hears about the final decision only, not the First approval.
+  // There is no mail transport wired up yet, so the built message goes to the
+  // server log.
+  if (!outcome.isFirstApproval) {
+    const email =
+      outcome.next === RefundStatus.Approved
+        ? buildApprovedRefundEmail({
+            learnerName: refund.learnerName,
+            learnerEmail: refund.learnerEmail,
+            courseTitle: refund.courseTitle,
+            amount: refund.amountPaid,
+          })
+        : buildDeclinedRefundEmail({
+            learnerName: refund.learnerName,
+            learnerEmail: refund.learnerEmail,
+            courseTitle: refund.courseTitle,
+          });
+
+    console.log(
+      `[email] to=${email.to} subject=${email.subject}\n${email.body}`
+    );
+  }
 
   return redirect("/support/refunds");
 }
