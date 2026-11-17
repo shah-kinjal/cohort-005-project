@@ -1,0 +1,1 @@
+ALTER TABLE `refunds` ADD `first_approved_by_user_id` integer REFERENCES users(id);
