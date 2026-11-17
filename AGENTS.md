@@ -20,4 +20,4 @@ Issues and PRDs live as GitHub issues on your own copy of this repo (the `origin
 
 ## Domain language
 
-Use the terms in `GLOSSARY.md` in code, UI copy, emails and docs. Say "refund", never "chargeback", "reversal" or "cancellation".
+Use the terms in `docs/GLOSSARY.md` in code, UI copy, emails and docs. Say "refund", never "chargeback", "reversal" or "cancellation".
