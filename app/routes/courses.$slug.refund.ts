@@ -56,16 +56,11 @@ function getLessonIdsForCourse(courseId: number): number[] {
   return rows.map((row) => row.id);
 }
 
-function getPendingRefund(purchaseId: number) {
+function getRefundForPurchase(purchaseId: number) {
   return db
     .select()
     .from(refunds)
-    .where(
-      and(
-        eq(refunds.purchaseId, purchaseId),
-        eq(refunds.status, RefundStatus.Requested)
-      )
-    )
+    .where(eq(refunds.purchaseId, purchaseId))
     .get();
 }
 
@@ -139,8 +134,8 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("You have not bought this course.", { status: 403 });
   }
 
-  if (getPendingRefund(purchase.id)) {
-    throw data("You already have a pending refund on this purchase.", {
+  if (getRefundForPurchase(purchase.id)) {
+    throw data("You have already asked for a refund on this purchase.", {
       status: 409,
     });
   }
