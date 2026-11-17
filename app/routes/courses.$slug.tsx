@@ -445,10 +445,7 @@ function asDayString(when: Date) {
  * What the learner is offered if they want their money back, or null if this
  * purchase cannot be refunded.
  */
-function getRefundOffer(
-  userId: number,
-  course: { id: number; price: number }
-) {
+function getRefundOffer(userId: number, course: { id: number; price: number }) {
   const purchase = getPurchaseForCourse(userId, course.id);
 
   if (!purchase) return null;

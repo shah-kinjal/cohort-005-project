@@ -20,7 +20,6 @@ import { getDiscountForCountry } from "~/lib/ppp";
 import { formatPrice } from "~/lib/utils";
 import { REFUND_WATCH_LIMIT_SECONDS, REFUND_WINDOW_DAYS } from "~/lib/refund";
 
-
 const refundParamsSchema = z.object({
   slug: z.string().min(1),
 });
@@ -141,7 +140,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   if (getPendingRefund(purchase.id)) {
-    throw data("You already have a request open on this purchase.", {
+    throw data("You already have a pending refund on this purchase.", {
       status: 409,
     });
   }
@@ -194,9 +193,12 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   if (watchedSeconds >= REFUND_WATCH_LIMIT_SECONDS) {
-    throw data("You have watched too much of this course to request a refund.", {
-      status: 403,
-    });
+    throw data(
+      "You have watched too much of this course to request a refund.",
+      {
+        status: 403,
+      }
+    );
   }
 
   // A purchase made at a purchasing-power price is given back at that price,
